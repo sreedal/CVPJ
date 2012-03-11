@@ -7,7 +7,7 @@ import org.bl.cv.base.InterestPoint;
 
 public class MoravecCornerDetector extends Detector{
 
-	private static boolean debug = true;
+	static boolean debug = true;
 	
 	private int windowSize;
 	private float threshold;

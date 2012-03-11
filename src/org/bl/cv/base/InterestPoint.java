@@ -11,8 +11,16 @@ public class InterestPoint {
 		x=x2;
 		y=y2;
 		orientation=orientation2;
+		scale=0;
 	}
 	
+	public InterestPoint(int i, int j) {
+		x=i;
+		y=j;
+		orientation=0;
+		scale=0;
+	}
+
 	public String toString(){
 		return "X:"+x+" Y:"+y+" O:"+orientation;
 	}
