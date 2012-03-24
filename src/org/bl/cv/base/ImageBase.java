@@ -1,5 +1,6 @@
 package org.bl.cv.base;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -67,5 +68,33 @@ public class ImageBase {
 		}
 		else
 			return 0;
+	}
+
+	public void convolveWithGaussian(double gaussianSigma) {
+		int gaussianWindowSize=(int) Math.floor(gaussianSigma*8);
+		double[][] gaussianWindow=new double[gaussianWindowSize][gaussianWindowSize];
+		int mp=gaussianWindowSize/2;
+		double sum=0;
+		for(int i=0;i<gaussianWindowSize;i++)
+			for(int j=0;j<gaussianWindowSize;j++){
+				gaussianWindow[i][j]=Math.exp(-((i-mp)*(i-mp)+(j-mp)*(j-mp))/(2*gaussianSigma*gaussianSigma))/(2*Math.PI*gaussianSigma*gaussianSigma);
+				sum+=gaussianWindow[i][j];
+			}
+		System.out.println(sum);
+		for(int i=mp;(i+mp)<image.getWidth();i++)
+			for(int j=mp;(j+mp)<image.getHeight();j++){
+				int Rsum=0,Gsum=0,Bsum=0;
+				for(int di=-mp;di<mp;di++)
+					for(int dj=-mp;dj<mp;dj++){
+						Color c=new Color(image.getRGB(i+di, j+dj));
+						Rsum+=gaussianWindow[di+mp][dj+mp]*c.getRed();
+						Gsum+=gaussianWindow[di+mp][dj+mp]*c.getGreen();
+						Bsum+=gaussianWindow[di+mp][dj+mp]*c.getBlue();
+					}
+//				System.out.println(Rsum+":"+Bsum+":"+Gsum);
+				Color c=new Color(Rsum,Gsum,Bsum);
+				image.setRGB(i, j, c.getRGB());
+			}
+		
 	}
 }

@@ -28,16 +28,16 @@ public abstract class AutocorrelationCornerDetector extends Detector{
 		IntegralImage=new float[image.getWidth()][image.getHeight()];
 		width=image.getWidth();
 		height=image.getHeight();
-		derivativeWindowSize=10;
-		gaussianWindowSize=10;
-		gaussianSigma=3;
-		threshold=30;
+		derivativeWindowSize=3;
+		gaussianSigma=1;
+		gaussianWindowSize=(int) Math.floor(gaussianSigma*8);
+		threshold=0;
 		BuildGaussianWindow();
 		CreateIntegralImage(image);
 		CalculatePartialDerivatives(image);
 	}
 	
-	protected AutocorrelationCornerDetector(ImageBase image,float t) {
+	protected AutocorrelationCornerDetector(ImageBase image,float sigma) {
 		super(image);
 		Ix=new float[image.getWidth()][image.getHeight()];
 		Ixx=new float[image.getWidth()][image.getHeight()];
@@ -47,22 +47,52 @@ public abstract class AutocorrelationCornerDetector extends Detector{
 		IntegralImage=new float[image.getWidth()][image.getHeight()];
 		width=image.getWidth();
 		height=image.getHeight();
-		derivativeWindowSize=10;
-		gaussianWindowSize=10;
-		gaussianSigma=3;
-		threshold=t;
+		derivativeWindowSize=3;
+		gaussianSigma=sigma;
+		gaussianWindowSize=(int) Math.floor(gaussianSigma*8);
+		threshold=0f;
 		BuildGaussianWindow();
+		image.convolveWithGaussian(gaussianSigma);
 		CreateIntegralImage(image);
 		CalculatePartialDerivatives(image);
 	}
 	
 	@Override
 	protected void detectPoints(ImageBase image) {
+		float thresh=1.5f;
+		float CornerScore[][]=new float[width][height];
 		for(int i=0;i<width;i++)
 			for(int j=0;j<height;j++){
-				float v=getACMScore(getAutoCorrelationMatrix(i,j));
-				if(v>threshold)
-					interestPoints.add(new InterestPoint(i,j)); //TODO Add Scale and Orientation Mapping
+				CornerScore[i][j]=getACMScore(getAutoCorrelationMatrix(i,j));
+			}
+		for(int i=1;i<width-1;i++)
+			for(int j=1;j<height-1;j++){
+				if(CornerScore[i][j]>thresh*CornerScore[i-1][j] &&
+						CornerScore[i][j]>thresh*CornerScore[i-1][j-1] &&
+						CornerScore[i][j]>thresh*CornerScore[i-1][j+1] &&
+						CornerScore[i][j]>thresh*CornerScore[i-1][j-2] &&
+						CornerScore[i][j]>thresh*CornerScore[i-1][j+2] &&
+						CornerScore[i][j]>thresh*CornerScore[i][j-1] &&
+						CornerScore[i][j]>thresh*CornerScore[i][j+1] &&
+						CornerScore[i][j]>thresh*CornerScore[i+1][j-1] &&
+						CornerScore[i][j]>thresh*CornerScore[i+1][j] &&
+						CornerScore[i][j]>thresh*CornerScore[i+1][j+1] &&
+						CornerScore[i][j]>thresh*CornerScore[i+1][j-2] &&
+						CornerScore[i][j]>thresh*CornerScore[i+1][j+2] &&
+						CornerScore[i][j]>thresh*CornerScore[i-2][j] &&
+						CornerScore[i][j]>thresh*CornerScore[i-2][j-1] &&
+						CornerScore[i][j]>thresh*CornerScore[i-2][j+1] &&
+						CornerScore[i][j]>thresh*CornerScore[i-2][j-2] &&
+						CornerScore[i][j]>thresh*CornerScore[i-2][j+2] &&
+						CornerScore[i][j]>thresh*CornerScore[i][j-2] &&
+						CornerScore[i][j]>thresh*CornerScore[i][j+2] &&
+						CornerScore[i][j]>thresh*CornerScore[i+2][j-1] &&
+						CornerScore[i][j]>thresh*CornerScore[i+2][j] &&
+						CornerScore[i][j]>thresh*CornerScore[i+2][j+1] &&
+						CornerScore[i][j]>thresh*CornerScore[i+2][j-2] &&
+						CornerScore[i][j]>thresh*CornerScore[i+2][j+2] &&
+						CornerScore[i][j]>threshold)
+					interestPoints.add(new InterestPoint(i,j,0,2));
 			}
 	}
 	
@@ -79,7 +109,7 @@ public abstract class AutocorrelationCornerDetector extends Detector{
 		int mp=gaussianWindowSize/2;
 		for(int i=0;i<gaussianWindowSize;i++)
 			for(int j=0;j<gaussianWindowSize;j++)
-				gaussianWindow[i][j]=Math.exp(((i-mp)*(i-mp)+(j-mp)*(j-mp))/(2*gaussianSigma*gaussianSigma))/(Math.sqrt(2*Math.PI)*gaussianSigma);
+				gaussianWindow[i][j]=Math.exp(-((i-mp)*(i-mp)+(j-mp)*(j-mp))/(2*gaussianSigma*gaussianSigma))/(2*Math.PI*gaussianSigma*gaussianSigma);
 	}
 	
 	protected float[] getAutoCorrelationMatrix(int x, int y){
@@ -87,13 +117,13 @@ public abstract class AutocorrelationCornerDetector extends Detector{
 		int mp=gaussianWindowSize/2;
 		for(int i=0;i<4;i++)
 			ACM[i]=0;
-		if(x>=mp && y>=mp){
+		if(x>=mp && y>=mp && x<(width-mp) && y<(height-mp) ){
 			for(int i=x-mp;i<x+mp;i++){
-				for(int j=x-mp;j<y+mp;j++){
-					ACM[0]=(float) (ACM[0]+gaussianWindow[i+mp][j+mp]*Ixx[i][j]);
-					ACM[1]=(float) (ACM[1]+gaussianWindow[i+mp][j+mp]*Ixy[i][j]);
-					ACM[2]=(float) (ACM[2]+gaussianWindow[i+mp][j+mp]*Ixy[i][j]);
-					ACM[3]=(float) (ACM[3]+gaussianWindow[i+mp][j+mp]*Iyy[i][j]);
+				for(int j=y-mp;j<y+mp;j++){
+					ACM[0]=(float) (ACM[0]+gaussianWindow[i-x+mp][j-y+mp]*Ixx[i][j]);
+					ACM[1]=(float) (ACM[1]+gaussianWindow[i-x+mp][j-y+mp]*Ixy[i][j]);
+					ACM[2]=ACM[1];
+					ACM[3]=(float) (ACM[3]+gaussianWindow[i-x+mp][j-y+mp]*Iyy[i][j]);
 				}
 			}
 		}
@@ -114,7 +144,7 @@ public abstract class AutocorrelationCornerDetector extends Detector{
 	}
 
 	private void CreateIntegralImage(ImageBase image) {
-		for(int i=1;i<width;i++){
+		for(int i=0;i<width;i++){
 			for(int j=0;j<height;j++){
 				Color c=new Color(image.getPixel(i, j));
 				int pix=(int) ((c.getRed()+c.getBlue()+c.getGreen())/3.0);
@@ -130,7 +160,7 @@ public abstract class AutocorrelationCornerDetector extends Detector{
 						IntegralImage[i][j]=IntegralImage[i-1][j]+pix;
 			}
 		}
+		System.out.println(IntegralImage[width-1][height-1]);
 	}
-	
 	
 }

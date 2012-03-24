@@ -14,6 +14,13 @@ public class InterestPoint {
 		scale=0;
 	}
 	
+	public InterestPoint(int x2, int y2, float orientation2, float scale2) {
+		x=x2;
+		y=y2;
+		orientation=orientation2;
+		scale=scale2;
+	}
+	
 	public InterestPoint(int i, int j) {
 		x=i;
 		y=j;
@@ -26,7 +33,7 @@ public class InterestPoint {
 	}
 
 	public void draw(Graphics2D g2d) {
-		g2d.drawRect((int)x-(int)scale*10,(int) y-(int)scale*10, (int)scale*20, (int) scale*20);
+		g2d.drawRect((int)x-(int)scale*2,(int) y-(int)scale*2, (int)scale*2, (int) scale*2);
 	}
 
 }
